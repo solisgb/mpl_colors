@@ -1,0 +1,14 @@
+2023-09-11
+12H:32M:55S: Traceback (most recent call last):
+  File "c:\users\solis\documents\dev\python3\graphs\mpl_colors\mpl_colors_driver.py", line 36, in <module>
+    print(mplc.display_colors_in_color_table(ctable_name='css4',
+  File "C:\Users\solis\Documents\DEV\python3\Graphs\mpl_colors\mpl_colors.py", line 239, in display_colors_in_color_table
+    indexes = [colors_dict_values.index(clr1) for clr1 in hex_colors]
+  File "C:\Users\solis\Documents\DEV\python3\Graphs\mpl_colors\mpl_colors.py", line 239, in display_colors_in_color_table
+    indexes = [colors_dict_values.index(clr1) for clr1 in hex_colors]
+  File "C:\Users\solis\miniconda3\envs\e1\lib\bdb.py", line 90, in trace_dispatch
+    return self.dispatch_line(frame)
+  File "C:\Users\solis\miniconda3\envs\e1\lib\bdb.py", line 115, in dispatch_line
+    if self.quitting: raise BdbQuit
+bdb.BdbQuit
+

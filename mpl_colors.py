@@ -10,19 +10,17 @@ from matplotlib import colorbar
 import matplotlib.pyplot as plt
 from math import fmod
 import numpy as np
-from time import time
 from typing import Union, List
-import traceback
 
 import littleLogging as logging
 
 class MplColors():
 
     __COLOR_TABLE_NAMES = \
-        {'BASE_COLORS': mcolors.BASE_COLORS,
-         'CSS4_COLORS': mcolors.CSS4_COLORS, 
-         'TABLEAU_COLORS': mcolors.TABLEAU_COLORS,
-         'XKCD_COLORS': mcolors.XKCD_COLORS}
+        {'base': mcolors.BASE_COLORS,
+         'css4': mcolors.CSS4_COLORS, 
+         'tableau': mcolors.TABLEAU_COLORS,
+         'xkcd': mcolors.XKCD_COLORS}
     __COLOR_BAR = {'height': 0.5, 'length': 9}
     __RGB_COLORS = ['red', 'green', 'blue']
     
@@ -73,12 +71,8 @@ class MplColors():
         
         color_list = list(colors_dict.values())
         cmap1 = ListedColormap(color_list)
-        
-        fig, ax = plt.subplots(figsize=(MplColors.__COLOR_BAR['length'],
-                                        MplColors.__COLOR_BAR['height']))
-        colorbar.ColorbarBase(ax, cmap=cmap1, orientation = 'horizontal')
-        plt.title(f"Selected named colors: {cmap1.N} colors")
-        plt.show()
+        title = f"Selected named colors: {cmap1.N} colors"
+        MplColors.fig_colorbar_cmap(cmap1, title)
 
 
     @staticmethod
@@ -97,18 +91,21 @@ class MplColors():
         n = len(cmaps_names)
         for i in range(0, n, cmap_line):
             print(", ".join(cmaps_names[i:i+cmap_line]))
+
     
+    @staticmethod
+    def fig_colorbar_cmap(col_map:mcolors.LinearSegmentedColormap,
+                      title:str) -> None:
+        fig, ax = plt.subplots(figsize=(MplColors.__COLOR_BAR['length'],
+                                        MplColors.__COLOR_BAR['height']))
+        colorbar.ColorbarBase(ax, cmap=col_map, orientation = 'horizontal')
+        plt.title(title)
+        plt.show()
+
     
     @staticmethod
     def display_colormaps(cmap_names: Union[str, List[str]]=[], 
                           ndisplays:int=5) -> None:
-        def plot_colormap(cmap_name:str) -> None:
-            fig, ax = plt.subplots(figsize=(MplColors.__COLOR_BAR['length'],
-                                            MplColors.__COLOR_BAR['height']))
-            col_map = plt.get_cmap(cmap_name)
-            colorbar.ColorbarBase(ax, cmap=col_map, orientation = 'horizontal')
-            plt.title(f"Mapcolor {cmap_name}: {col_map.N} colors")
-            plt.show()
     
         if cmap_names:
             if isinstance(cmap_names, str):
@@ -122,7 +119,9 @@ class MplColors():
             valid_cmap_names = [cmn1 for cmn1 in cmap_names \
                                 if cmn1 in cmaps_names_set]
             for cmn1 in valid_cmap_names:
-                plot_colormap(cmn1)
+                col_map = plt.get_cmap(cmn1)
+                title = f"Colormap {cmn1}: {col_map.N} colors"
+                MplColors.fig_colorbar_cmap(col_map, title)                
         else:
             for i, cmn1 in enumerate(cmaps_names_set):
                 if i > 0:
@@ -132,12 +131,14 @@ class MplColors():
                                     'continue (y/n):? ')
                         if ans.lower() != 'y':
                             break
-                plot_colormap(cmn1)
-    
+                col_map = plt.get_cmap(cmn1)
+                title = f"Colormap {cmn1}: {col_map.N} colors"
+                MplColors.fig_colorbar_cmap(col_map, title)
+
     
     @staticmethod
-    def display_colors_in_colormap(cmap_name:str='hsv', ncolors:int=10, 
-                                   correlative:bool=False) ->None:
+    def display_colors_in_colormap\
+        (cmap_name:str='hsv', ncolors:int=10) -> None:
         cmaps_names_set = [cmn1 for cmn1 in plt.colormaps()]
         if cmap_name not in cmaps_names_set:
             logging.append(f'{cmap_name} is not a valid colormap name. ' 
@@ -146,10 +147,8 @@ class MplColors():
         colormap = plt.get_cmap(cmap_name)
         print(f'Colormap {cmap_name}: number of colors {colormap.N}. '
               f'{ncolors} colors are displayed')
-        if correlative and ncolors<= colormap.N:
-            values = [i for i in range(ncolors)]
-        else:
-            values = np.linspace(0, 1, ncolors)  
+        
+        values = np.linspace(0, 1, ncolors)  
         
         # Map the numerical values to colors in the colormap
         colors = [colormap(value) for value in values]
@@ -158,54 +157,121 @@ class MplColors():
         for color in colors:
             hex_code = mcolors.to_hex(color, keep_alpha=True)
             print(f'{color}, {hex_code}')
-        
-        # Plot a bar chart using the colors
-        plt.bar(range(len(colors)), [1] * len(colors), color=colors)
-        plt.show()
 
-        
+        cmap = ListedColormap(colors)
+        title = f'Selected colors in colormap {cmap_name}'
+        MplColors.fig_colorbar_cmap(cmap, title)
+
+    
     @staticmethod
-    def color_names_get(color_table: str='tableau', hex_code: bool=False) -> []:
+    def get_colors_in_colormap\
+        (cmap_name:str, indexes: Union[int, slice]) ->None:
+        cmaps_names_set = [cmn1 for cmn1 in plt.colormaps()]
+        if cmap_name not in cmaps_names_set:
+            logging.append(f'{cmap_name} is not a valid colormap name. ' 
+                           'It continues with hsv instead')
+            cmap_name = 'hsv'
+        cmap = plt.get_cmap(cmap_name)
+        print(f'Colormap {cmap_name}: number of colors {cmap.N}.')
 
+        unique_indexes = set()
+    
+        for index in indexes:
+            if isinstance(index, int):  # Check if it's an integer index
+                if index not in unique_indexes:
+                    unique_indexes.add(index)
+            elif isinstance(index, slice):  # Check if it's a slice object
+                start = index.start if index.start is not None else 0
+                stop = index.stop if index.stop is not None else cmap.N
+                step = index.step if index.step is not None else 1
+                
+                for i in range(start, stop, step):
+                    if i not in unique_indexes:
+                        unique_indexes.add(i)
 
-        if color_table.lower() == 'base':
-            colors = mcolors.BASE_COLORS
-        elif color_table.lower() == 'css4':
-            colors = mcolors.CSS4_COLORS
-        elif color_table.lower() == 'tableau':
-            colors = mcolors.TABLEAU_COLORS
-        else:
-            colors = mcolors.BASE_COLORS
-
-        if hex_code:
-            if color_table.lower() == 'base':
-                return [(k, mcolors.to_hex(v)) for k, v in colors.items()]
-            else:
-                return [(k, v) for k, v in colors.items()]
-        else:
-            return [k for k in colors]
-
+        colors = [cmap(i) for i in unique_indexes]
         
+        print('Color codes. Formats: RGBA, hex. RGBA')
+        for color, i in zip(colors, unique_indexes):
+            hex_code = mcolors.to_hex(color, keep_alpha=True)
+            print(f'{i}, {hex_code}')
+
+        cmap = ListedColormap(colors)
+        title = f'Selected colors in colormap {cmap_name}'
+        MplColors.fig_colorbar_cmap(cmap, title)
+
+
     @staticmethod
     def get_color_table_names():
         return MplColors.__COLOR_TABLE_NAMES.keys()
 
-
-if __name__ == "__main__":
-
-    startTime = time()
-
-    try:
-
-        mplc = MplColors()
-        mplc.display_named_colors() 
-
-    except Exception:
-        msg = traceback.format_exc()
-        logging.append(msg)
-    finally:
-        logging.dump()
-        xtime = time() - startTime
-        print(f'El script tardó {xtime:0.1f} s')
-
         
+    @staticmethod
+    def display_color_tables\
+        (ctable_names: Union[str, List[str]]=[]) -> []:
+        
+        if not isinstance(ctable_names, (str, list)):
+            logging.append('ctable_names must be of type str or [str]')
+            return
+        
+        if isinstance(ctable_names, str):
+            ctable_names = [ctable_names]
+        
+        table_names_set = MplColors.get_color_table_names()
+        
+        if ctable_names:
+            valid_ctable_names = [ctn1 for ctn1 in ctable_names \
+                if ctn1 in table_names_set]
+        else:
+            valid_ctable_names = table_names_set
+        
+        if not valid_ctable_names:
+            logging.append('ctable_names does not have valid names, '
+                           'all table colors are used instead')
+        
+        print('Number of colors in the color tables')
+        for tcn1 in valid_ctable_names:
+            colors_dict = MplColors.__COLOR_TABLE_NAMES[tcn1]
+            color_names = [key for key in colors_dict]            
+            print(f'Color table {tcn1}. Number of colors {len(color_names)}')
+        
+        for tcn1 in valid_ctable_names:
+            colors_dict = MplColors.__COLOR_TABLE_NAMES[tcn1]
+       
+            color_list = list(colors_dict.values())
+            cmap1 = ListedColormap(color_list)
+            title = f"Color table {tcn1}: {cmap1.N} colors"
+            MplColors.fig_colorbar_cmap(cmap1, title)
+
+    
+    @staticmethod
+    def display_colors_in_color_table\
+        (ctable_name:str='tableau', ncolors:int=10) -> None:
+        table_names_set = MplColors.get_color_table_names()
+        if ctable_name not in table_names_set:
+            logging.append(f'{ctable_name} is not a valid table color name. ' 
+                           'It continues with tableau instead')
+            ctable_name = 'tableau'
+        colors_dict = MplColors.__COLOR_TABLE_NAMES[ctable_name]
+        colors_dict_keys = list(colors_dict.keys())
+        colors_dict_values = [v1.lower() for v1 in colors_dict.values()]
+        cmap1 = ListedColormap(colors_dict_values)            
+            
+        print(f'Color table {ctable_name}: number of colors {cmap1.N}. '
+              f'{ncolors} colors are displayed')
+
+        values = np.linspace(0, 1, ncolors)  
+        
+        # Map the numerical values to colors in the colormap
+        colors = [cmap1(value) for value in values]
+        hex_colors = [mcolors.to_hex(clr1, keep_alpha=False) for clr1 in colors]        
+        indexes = [colors_dict_values.index(clr1) for clr1 in hex_colors]
+        keys = [colors_dict_keys[i] for i in indexes]
+        cmap1 = ListedColormap(colors)
+        
+        print('Color codes. Formats: hex RGBA, hex. RGBA')
+        for key, hclr1 in zip(keys, hex_colors):
+            print(f'{key}, {hclr1}')
+
+        title = f'Selected colors in color table {ctable_name}'
+        MplColors.fig_colorbar_cmap(cmap1, title)

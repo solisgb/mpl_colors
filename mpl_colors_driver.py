@@ -19,7 +19,7 @@ try:
     from time import time
     import traceback
     
-    from mpl_colors import MplColors as mc
+    from mpl_colors import MplColors as mplc
     import littleLogging as myLogging
 
 except ImportError as e:
@@ -33,7 +33,8 @@ if __name__ == "__main__":
 
     try:
 
-        mc.display_colormaps(['tab10'])
+         print(mplc.display_colors_in_color_table(ctable_name='css4',
+                                                  ncolors=6, head=False))
     
     except ValueError:
         msg = traceback.format_exc()
